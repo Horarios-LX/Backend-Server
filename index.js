@@ -3,6 +3,8 @@ const CMetropolitana = require("cmetropolitana.js")
 const app = express()
 const fs = require("fs")
 
+// TESTING
+
 let ready = false
 
 let vehicles = {};
