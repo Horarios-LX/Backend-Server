@@ -3,7 +3,15 @@ const CMetropolitana = require("cmetropolitana.js")
 const app = express()
 const fs = require("fs")
 
-// TESTING
+const cors = require("cors")
+
+app.use(cors({
+    origin: ['*'],
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'], 
+    credentials: true 
+}));
+
 
 let ready = false
 
