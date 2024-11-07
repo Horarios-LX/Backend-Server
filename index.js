@@ -24,7 +24,10 @@ let stopsRemapped;
 
 let schoolsRemapped;
 
+let now = Date.now()/1000;
+
 async function fetchAll() {
+    
     await CMetropolitana.alerts.fetchAll();
     await CMetropolitana.lines.fetchAll();
     await CMetropolitana.routes.fetchAll();
@@ -33,7 +36,7 @@ async function fetchAll() {
     await CMetropolitana.vehicles.fetchAll().then(r => vehicles = {...CMetropolitana.vehicles.cache._cache});
     Object.keys(vehicles).map(key => {
         newVec = vehicles[key];
-        vehicles[key] = { id: newVec.id, tripId: newVec.trip_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) };
+        vehicles[key] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) };
         vehicles[key].prev_stop = null;
     })
     return true;
@@ -48,7 +51,8 @@ CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
     if(vehicles[newVec.id]) {
         prevStop = (newVec.stop_id === vehicles[newVec.id].stop_id ? vehicles[newVec.id].prev_stop || null : vehicles[newVec.id].stop_id)
     }
-    vehicles[newVec.id] = { id: newVec.id, tripId: newVec.trip_id, lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
+    now = Date.now()/1000;
+    vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
     if(vehicles[newVec.id].trip_id) vehicles[newVec.id].prev_stop = prevStop;
 })
 
