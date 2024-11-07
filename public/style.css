@@ -1,0 +1,85 @@
+.dashboard {
+    background-color: grey;
+    width: calc(100% - 40px);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    align-items: stretch;
+    height: auto;
+}
+
+.tunnel {
+    padding: 0px;
+    margin: 0px;
+}
+
+.tunnel p {
+    margin: 0px;
+    font-size: large;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.tunnel a {
+    margin: 0px;
+}
+
+button {
+    border-width: 0px;
+    border-radius: 1.5em;
+    font-size: 1em;
+    padding: 1em;
+    width: calc(33% - .5em);
+    font-weight: bold;
+    color: white;
+}
+
+.restart {
+    background-color: #a01111;
+}
+
+.pull {
+    background-color: #11a011;
+}
+
+.services {
+    background-color: #1160a0;
+}
+
+button:hover {
+    filter: brightness(.85);
+}
+
+.controls {
+    color: white;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding-right: 20px;
+    border-radius: 10px;
+    height: 300px;
+    font-weight: bold;
+    flex: 1;
+}
+
+.console {
+    background-color: black;
+    color: white;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding: 20px;
+    border-radius: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    font-weight: bold;
+    flex: 1;
+}
+
+.console .server {
+    color: green;
+}
+
+.console .error {
+    color: red;
+}
+
+.console .normal {
+    color: white;
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CM Schedules - Backend Dashboard</title>
+    <link rel="stylesheet" href="/public/style.css">
+</head>
+
+<body>
+    <div class="dashboard">
+        <div class="controls">
+            <div class="tunnel">
+                <p>Tunnel:</p>
+                <p id="cloudflare-tunnel">Not connected</p>
+            </div>
+            <div class="buttons">
+                <button id="restart" class="restart">Restart</button>
+                <button id="pull" class="pull">Pull from Github</button>
+                <button id="services" class="services">View DB</button>
+            </div>
+        </div>
+        <div id="console" class="console">
+
+        </div>
+    </div>
+    <script>
+        document.body.onload = () => {
+            document.getElementById("restart").onclick = () => fetch("/restart")
+            document.getElementById("pull").onclick = () => fetch("/pull")
+            document.getElementById("services").onclick = () => window.location.href = "/services"
+            const logContainer = document.getElementById('console');
+            const ws = new WebSocket('ws://mbp15.local:8082'); // Adjust the URL if needed
+            fetch("/log").then(r => r.text()).then(r => {
+                logContainer.innerHTML = r.split("\\n").map(a => {
+                    if(a.startsWith("[Server.js ERR]")) return "<span class=\"error\">" + a + "</span>";
+                    if(a.startsWith("[Server.js INFO]")) return "<span class=\"server\">" + a + "</span>";
+                    return "<span class=\"normal\">" + a + "</span>";
+                }).join("<br>");
+                logContainer.scrollTop = logContainer.scrollHeight; 
+            })
+            fetch("/domain").then(r => r.json()).then(r => {
+                document.getElementById("cloudflare-tunnel").innerHTML = "<a href=\"" + r.link + "\">" + r.link + "</a>"
+            })
+            // Listen for messages (logs) from the server
+            ws.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if(data.type === "console") {
+                logContainer.innerHTML = data.logs.split("\\n").map(a => {
+                    if(a.startsWith("[Server.js ERROR]")) return "<span class=\"error\">" + a + "</span>";
+                    if(a.startsWith("[Server.js INFO]")) return "<span class=\"server\">" + a + "</span>";
+                    return "<span class=\"normal\">" + a + "</span>";
+                }).join("<br>");
+                logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
+            } else if(data.type === "cloudflared") {
+                document.getElementById("cloudflare-tunnel").innerHTML = "<a href=\"" + data.domain + "\">" + data.domain + "</a>"
+            }
+            };
+            ws.onopen = function () {
+                console.log('Connected to WebSocket server');
+            };
+
+            ws.onclose = function () {
+                console.log('WebSocket connection closed');
+            };
+        }
+    </script>
+</body>
+
+</html>

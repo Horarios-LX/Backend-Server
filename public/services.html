@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CM Schedules - Backend Dashboard</title>
+</head>
+<style>
+    .line {
+        position: relative;
+        font-size: 1em !important;
+        font-family: sans-serif;
+        font-weight: bold;
+        padding: .25em;
+        width: 4em;
+        background-color: #000000;
+        color: white;
+        cursor: default;
+        display: inline-block;
+        text-align: center;
+        margin-right: 5px;
+        border-radius: 2em;
+    }
+
+    .line.long {
+        background-color: #C61D23;
+    }
+
+    .line.short {
+        background-color: #3D85C6;
+    }
+
+    li {
+        margin-bottom: 10px;
+    }
+</style>
+
+<body>
+    <div class="dashboard">
+        <a href="/">Return to dashboard</a>
+        <input id="bus" placeholder="41|1160">
+        <button id="submit">Search</button>
+        <div id="results"></div>
+    </div>
+    <script>
+        let CLOUDFLARED = "http://mbp15.local:8080"
+        let input = document.getElementById("bus")
+        const infoCache = {}
+        const shortLines = ["1008", "1009", "1012", "1015", "1109", "1113", "1114", "1120", "1124", "1201", "1204", "1205", "1210", "1216", "1221", "1222", "1226", "1229", "1230", "1252", "1501", "1510", "1511", "1513", "1524"]
+        let results = document.getElementById("results")
+        document.getElementById("submit").onclick = () => {
+            let vec = input.value;
+            if (vec.startsWith("41|")) vec = vec.split("|")[1];
+            results.innerHTML = "<ul></ul>"
+            let divs = []
+            fetch("/services/" + vec).then(r => r.json()).then(r => r.sort((a, b) => b.start - a.start)).then(service => {
+                Promise.all(service.map(async a => {
+                    let p = document.createElement("li")
+                    let line = a.id.split("_")[0];
+                    let service = a.id.split("_").slice(0, 3).join("_");
+                    let info = infoCache[service] || fetch(CLOUDFLARED + "/patterns/" + service).then(r => r.json())
+                    infoCache[service] = info;
+                    if(info.then) info = await Promise.resolve(info)
+                    infoCache[service] = info;
+                    p.innerHTML = "<span class=\"line " + (shortLines.includes(line) ? "short" : "long") + "\">" + line + "</span> " + info[0].headsign + " | " + (new Date(a.start).toLocaleString()) + " - " + (new Date(a.end).toLocaleString())
+                    divs.push({start: a.start, div: p})
+                })).then(r => {
+                    divs.sort((a, b) => b.start - a.start).map(d => results.querySelector("ul").append(d.div))
+                })
+            })
+        }
+    </script>
+</body>
+
+</html>
