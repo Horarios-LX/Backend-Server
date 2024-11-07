@@ -1,4 +1,4 @@
-const token = require("./data/config.json").token
+const token = require("../data/config.json").token
 const Discord = require("discord.js")
 
 let client = new Discord.Client({ intents: [Discord.Intents.FLAGS.GUILD_MESSAGES] })
