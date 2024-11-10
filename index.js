@@ -16,7 +16,11 @@ let departuresCache = {};
 
 let positionCache = {};
 
+let historicalPositionCache = {};
+
 let ready = false
+
+let epoch = Math.floor(Date.now()/30000); // 2 "ticks" per minute
 
 let vehicles = {};
 
@@ -56,11 +60,18 @@ CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
     if(vehicles[newVec.id]) {
         prevStop = (newVec.stop_id === vehicles[newVec.id].stop_id ? vehicles[newVec.id].prev_stop || null : vehicles[newVec.id].stop_id)
     }
-    now = Date.now()/1000;
-    vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
+    now = Math.round(Date.now()/1000);
+    tick = Math.floor(Date.now()/30000);
+    vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id.replaceAll("1998","CP")) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
     if(vehicles[newVec.id].trip_id) vehicles[newVec.id].prev_stop = prevStop;
-    positionCache[newVec.id] ? positionCache[newVec.id].unshift([newVec.lat, newVec.lon, vehicles[newVec.id].color]) : positionCache[newVec.id] = [[newVec.lat, newVec.lon, vehicles[newVec.id].color]]
-    if(positionCache[newVec.id].length > 120) positionCache[newVec.id].slice(0, 120)
+    if(!positionCache[newVec.id]) positionCache[newVec.id] = [];
+    positionCache[newVec.id].push([newVec.lat, newVec.lon, vehicles[newVec.id].color, vehicles[newVec.id].stopId, vehicles[newVec.id].pattern_id, tick-epoch])
+    if(positionCache[newVec.id].length > 120) {
+        hpc = positionCache[newVec.id].slice(0, positionCache[newVec.id].length - 120).filter((a) => a[5] % 4 === 0);
+        historicalPositionCache[newVec.id] ? historicalPositionCache[newVec.id] = historicalPositionCache[newVec.id].concat(hpc) : historicalPositionCache[newVec.id] = hpc;
+        if(historicalPositionCache[newVec.id].length > 330) historicalPositionCache[newVec.id] = historicalPositionCache[newVec.id].slice(-330);
+        positionCache[newVec.id] = positionCache[newVec.id].slice(-120)
+    }
 })
 
 process.on('message', (data) => {
@@ -86,6 +97,10 @@ app.get("/vehicles/:rg/:id/trip", async (r, s) => {
     return s.json(positionCache[r.params.rg + "|" + r.params.id] || [])
 })
 
+app.get("/vehicles/:rg/:id/trip/12h", async (r, s) => {
+    return s.json(historicalPositionCache[r.params.rg + "|" + r.params.id] || [])
+})
+
 app.get("/stats", (_, s) => {
     return s.json(!ready ? {} : { vehicles: Object.values(vehicles).filter(a => a.tripId).length, lines: CMetropolitana.lines.cache.size()})
 })
@@ -105,12 +120,16 @@ app.get("/routes/:route", (r, s) => {
 })
 
 app.get("/patterns/:pattern", async (r, s) => {
+    try {
     let res = !ready ? {} : (await CMetropolitana.patterns.fetch(r.params.pattern) || CMetropolitana.patterns.cache.get(r.params.pattern));
     if(res.id) {
         schedule = res.trips[0].schedule
         res = { id: res.id, color: res.color, long_name: CMetropolitana.routes.cache.get(res.route_id).long_name, headsign: res.headsign, line_id: res.line_id, shape_id: res.shape_id, path: res.path.map(a => ({id: a.stop.id, name: a.stop.name, stop_sequence: a.stop_sequence, travel_time: parseTime(schedule[a.stop_sequence - (res.path[0].stop_sequence)].travel_time ), lines: a.stop.lines.map(a => ({text: a, color: (CMetropolitana.lines.cache.get(a) || {color: undefined}).color}))}))}
     }
     return s.json(res)
+    } catch(err) {
+        return s.json({})
+    }
 })
 
 app.get("/stops", (r, s) => {
