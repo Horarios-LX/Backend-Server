@@ -59,7 +59,7 @@ CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
     now = Date.now()/1000;
     vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
     if(vehicles[newVec.id].trip_id) vehicles[newVec.id].prev_stop = prevStop;
-    positionCache[newVec.id] ? positionCache[newVec.id].unshift([newVec.lat, newVec.lon, newVec.color]) : positionCache[newVec.id] = [[newVec.lat, newVec.lon, newVec.color]]
+    positionCache[newVec.id] ? positionCache[newVec.id].unshift([newVec.lat, newVec.lon, vehicles[newVec.id].color]) : positionCache[newVec.id] = [[newVec.lat, newVec.lon, vehicles[newVec.id].color]]
     if(positionCache[newVec.id].length > 120) positionCache[newVec.id].slice(0, 120)
 })
 
