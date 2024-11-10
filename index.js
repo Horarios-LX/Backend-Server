@@ -14,6 +14,8 @@ app.use(cors({
 
 let departuresCache = {};
 
+let positionCache = {};
+
 let ready = false
 
 let vehicles = {};
@@ -45,7 +47,10 @@ async function fetchAll() {
 fetchAll().then(r => ready = r);
 
 CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
-    if(!newVec) vehicles[oldVec.id] = null;
+    if(!newVec) {
+        vehicles[oldVec.id] = undefined;
+        positionCache[oldVec.id] = undefined;
+    }
     if(!newVec.line_id) return;
     if(!ready) return;
     if(vehicles[newVec.id]) {
@@ -54,6 +59,8 @@ CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
     now = Date.now()/1000;
     vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - (Date.now()/1000) > -300 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
     if(vehicles[newVec.id].trip_id) vehicles[newVec.id].prev_stop = prevStop;
+    positionCache[newVec.id] ? positionCache[newVec.id].unshift([newVec.lat, newVec.lon]) : positionCache[newVec.id] = [[newVec.lat, newVec.lon]]
+    if(positionCache[newVec.id].length > 120) positionCache[newVec.id].slice(0, 120)
 })
 
 process.on('message', (data) => {
@@ -73,6 +80,10 @@ app.get("/vehicles/:stop", async (r, s) => {
     if(!CMetropolitana.stops.cache.get(r.params.stop)) return s.json({})
     if(!departuresCache[r.params.stop]) departuresCache[r.params.stop] = (await CMetropolitana.stops.cache.get(r.params.stop).departures(Date.now())).map(a => a.trip_id);
     return s.json(!ready ? {} : Object.values(vehicles).filter(a => CMetropolitana.stops.cache.get(r.params.stop).patterns.includes(a.pattern_id) || (departuresCache[r.params.stop] ? departuresCache[r.params.stop].includes(a.trip_id) : false)))
+})
+
+app.get("/vehicles/:rg/:id/trip", async (r, s) => {
+    return s.json(positionCache[r.params.rg + "|" + r.params.id] || [])
 })
 
 app.get("/stats", (_, s) => {
