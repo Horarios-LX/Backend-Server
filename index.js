@@ -6,7 +6,7 @@ const fs = require("fs")
 const cors = require("cors")
 
 app.use(cors({
-    origin: ['https://horarios-lx.github.io/', 'http://localhost:8080', 'http://localhost:8081', 'http://127.0.0.1:8080',, 'http://192.168.1.170:8080'],
+    origin: ['https://horarios-lx.github.io', 'http://localhost:8080', 'http://localhost:8081', 'http://127.0.0.1:8080',, 'http://192.168.1.170:8080'],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'], 
     credentials: true 
