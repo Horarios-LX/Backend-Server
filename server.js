@@ -6,6 +6,12 @@ const wss = new WebSocket.Server({ port: 8082 });
 
 let log = ""
 
+let { spawn, exec } = require("node:child_process")
+
+const sc = spawn("cloudflared", ["tunnel", "--url", "http://localhost:8080", "--no-autoupdate", "-logfile", "/dev/null"]) // server cloudflare
+
+const wc = spawn("cloudflared", ["tunnel", "--url", "wss://localhost:8079", "--no-autoupdate", "-logfile", "/dev/null"]) // wss cloudflare
+
 const ogConsoleLog = console.log;
 
 console.log = (...args) => {
@@ -20,11 +26,13 @@ console.log = (...args) => {
     
 }
 
+let domain;
+
+let domain2;
+
 const client = require("./client/")
 
 client.login()
-
-let { spawn, exec } = require("node:child_process")
 
 let app = express()
 
@@ -35,6 +43,11 @@ app.get("/analytics.json", (_, s) => {
 app.get("/domain", (_, s) => {
     if (!domain) return s.json({ link: "" });
     s.json({ link: domain })
+})
+
+app.get("/domain2", (_, s) => {
+    if (!domain2) return s.json({ link: "" });
+    s.json({ link: domain2 })
 })
 
 app.get("/services", (_, s) => {
@@ -49,17 +62,9 @@ app.get("/public/:file", (r, s) => {
     s.sendFile(__dirname + "/public/" + r.params.file)
 })
 
-app.get("/services/:vec", (r, s) => {
-    let vehicles = JSON.parse(fs.readFileSync("./data/vehicles.json", {encoding: "utf-8"}))
-    s.json(vehicles["41|" + r.params.vec] || [])
-})
-
-
 app.get("/", (_, s) => {
     s.sendFile(__dirname + "/public/index.html")
 })
-
-let cloudflared = spawn("cloudflared", ["tunnel", "--url", "http://localhost:8080", "--no-autoupdate", "-logfile", "/dev/null"])
 
 let serverProcess = spawn("node", ["index.js"])
 
@@ -102,8 +107,6 @@ app.get("/restart", (_, s) => {
     }, 1000)
 })
 
-let domain = "";
-
 serverProcess.stderr.on("data", (data) => {
     console.log("[Server.js ERR] " + data)
 })
@@ -113,13 +116,25 @@ serverProcess.stdout.on("data", (data) => {
 })
 
 
-cloudflared.stderr.on("data", (data) => {
+sc.stderr.on("data", (data) => {
     if (data.toString().includes(".trycloudflare.com")) {
         domain = "https://" + (data.toString().split(".trycloudflare.com")[0]).split("https://")[1] + ".trycloudflare.com"
         console.log("Server's public on " + domain)
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ domain: domain, type: "cloudflared" }));
+            }
+        });
+    }
+})
+
+wc.stderr.on("data", (data) => {
+    if (data.toString().includes(".trycloudflare.com")) {
+        domain2 = "https://" + (data.toString().split(".trycloudflare.com")[0]).split("https://")[1] + ".trycloudflare.com"
+        console.log("Server's public on " + domain2)
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ domain: domain2, type: "cloudflared2" }));
             }
         });
     }

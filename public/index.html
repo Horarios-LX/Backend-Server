@@ -12,6 +12,7 @@
             <div class="tunnel">
                 <p>Tunnel:</p>
                 <p id="cloudflare-tunnel">Not connected</p>
+                <p id="cloudflare-tunnel2">Not connected</p>
             </div>
             <div class="buttons">
                 <button id="restart" class="restart">Restart</button>
@@ -29,7 +30,7 @@
             document.getElementById("pull").onclick = () => fetch("/pull")
             document.getElementById("services").onclick = () => window.location.href = "/services"
             const logContainer = document.getElementById('console');
-            const ws = new WebSocket('ws://mbp15.local:8082'); // Adjust the URL if needed
+            const ws = new WebSocket('wss://mbp15.local:8082'); // Adjust the URL if needed
             fetch("/log").then(r => r.text()).then(r => {
                 logContainer.innerHTML = r.split("\\n").map(a => {
                     if(a.startsWith("[Server.js ERR]")) return "<span class=\"error\">" + a + "</span>";
@@ -41,18 +42,23 @@
             fetch("/domain").then(r => r.json()).then(r => {
                 document.getElementById("cloudflare-tunnel").innerHTML = "<a href=\"" + r.link + "\">" + r.link + "</a>"
             })
+            fetch("/domain2").then(r => r.json()).then(r => {
+                document.getElementById("cloudflare-tunnel2").innerHTML = "<a href=\"" + r.link + "\">" + r.link + "</a>"
+            })
             // Listen for messages (logs) from the server
             ws.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 if(data.type === "console") {
                 logContainer.innerHTML = data.logs.split("\\n").map(a => {
-                    if(a.startsWith("[Server.js ERROR]")) return "<span class=\"error\">" + a + "</span>";
+                    if(a.startsWith("[Server.js ERR]")) return "<span class=\"error\">" + a + "</span>";
                     if(a.startsWith("[Server.js INFO]")) return "<span class=\"server\">" + a + "</span>";
                     return "<span class=\"normal\">" + a + "</span>";
                 }).join("<br>");
                 logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
             } else if(data.type === "cloudflared") {
                 document.getElementById("cloudflare-tunnel").innerHTML = "<a href=\"" + data.domain + "\">" + data.domain + "</a>"
+            } else if(data.type === "cloudflared2") {
+                document.getElementById("cloudflare-tunnel2").innerHTML = "<a href=\"" + data.domain + "\">" + data.domain + "</a>"
             }
             };
             ws.onopen = function () {
