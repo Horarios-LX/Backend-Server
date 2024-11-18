@@ -10,7 +10,7 @@ let { spawn, exec } = require("node:child_process")
 
 const sc = spawn("cloudflared", ["tunnel", "--url", "http://localhost:8080", "--no-autoupdate", "-logfile", "/dev/null"]) // server cloudflare
 
-const wc = spawn("cloudflared", ["tunnel", "--url", "wss://localhost:8079", "--no-autoupdate", "-logfile", "/dev/null"]) // wss cloudflare
+const wc = spawn("cloudflared", ["tunnel", "--url", "ws://localhost:8079", "--no-autoupdate", "-logfile", "/dev/null"]) // wss cloudflare
 
 const ogConsoleLog = console.log;
 
