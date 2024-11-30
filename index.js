@@ -275,4 +275,4 @@ setTimeout(() => {
 }, (new Date(now * 1000)).setHours(4) + 24 * 60 * 60 * 1000 - now * 1000)
 
 
-app.listen("8081", () => console.log("Server's ready!"))
+app.listen("8080", () => console.log("Server's ready!"))
