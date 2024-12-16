@@ -80,7 +80,6 @@ let schoolsRemapped;
 let now = Math.round(Date.now() / 1000);
 
 async function fetchAll() {
-    await CMetropolitana.alerts.fetchAll();
     await CMetropolitana.lines.fetchAll();
     await CMetropolitana.routes.fetchAll();
     await CMetropolitana.stops.fetchAll().then(a => stopsRemapped = Object.values(CMetropolitana.stops.cache._cache).map(a => ({ id: a.id, lat: a.lat, lon: a.lon, name: a.name, lines: a.lines.map(b => ({ text: b, color: (CMetropolitana.lines.cache.get(b) || { color: "#000000" }).color })) })));
@@ -108,7 +107,7 @@ CMetropolitana.vehicles.on("vehicleUpdate", (oldVec, newVec) => {
         prevStop = (newVec.stop_id === vehicles[newVec.id].stop_id ? vehicles[newVec.id].prev_stop || null : vehicles[newVec.id].stop_id)
     }
     now = Math.round(Date.now() / 1000);
-    vehicles[newVec.id] = { id: newVec.id, tripId: (newVec.timestamp - now > -15000 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id.replaceAll("1998", "CP")) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
+    vehicles[newVec.id] = { prevStop: (oldVec && oldVec.stop_id !== newVec.stop_id ? oldVec.stop_id : null), id: newVec.id, tripId: (newVec.timestamp - now > -15000 ? newVec.trip_id : null), lineId: newVec.line_id, stopId: newVec.stop_id, timestamp: newVec.timestamp, lat: newVec.lat, lon: newVec.lon, bearing: newVec.bearing, pattern_id: newVec.pattern_id, color: (CMetropolitana.lines.cache.get(newVec.line_id.replaceAll("1998", "CP")) || { color: undefined }).color, notes: (notes[newVec.id] || null) }
     if (vehicles[newVec.id].trip_id) vehicles[newVec.id].prev_stop = prevStop;
     if(newVec.timestamp - now > -15000) parsePos(newVec)
 })
